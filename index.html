@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planetarium</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Bruno+Ace+SC&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+
+    <style>
+        /* --- GLOBAL STYLES & SETUP --- */
+        :root {
+            --bg-deep-space: #000011;
+            --primary-glow: #00ffff;
+            --secondary-glow: #be00ff;
+            --text-light: #e0e8ff;
+            --text-dark: #a0a8c8;
+            --glass-bg: rgba(0, 255, 255, 0.05);
+            --glass-border: rgba(0, 255, 255, 0.2);
+            --rating-gold: #ffc107;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: transparent;
+            font-family: 'Tajawal', sans-serif;
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- ANIMATED BACKGROUND STYLES --- */
+        #tsparticles {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; background-color: var(--bg-deep-space);
+        }
+
+        /* --- HEADER & NAVIGATION --- */
+        .header {
+            position: fixed; top: 0; left: 0; width: 100%; padding: 1.5rem 7%;
+            display: flex; justify-content: space-between; align-items: center; z-index: 1000;
+            background: rgba(2, 0, 26, 0.5); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .logo {
+            font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: var(--text-light);
+            text-decoration: none; text-shadow: 0 0 10px var(--primary-glow);
+        }
+        .navbar a {
+            font-size: 1.1rem; color: var(--text-light); text-decoration: none;
+            margin-left: 2rem; transition: color 0.3s, text-shadow 0.3s; cursor: pointer;
+        }
+        .navbar a:hover, .navbar a.active { color: var(--primary-glow); text-shadow: 0 0 15px var(--primary-glow); }
+
+        /* --- PAGE MANAGEMENT & TRANSITION --- */
+        .page {
+            display: none; min-height: 100vh;
+            animation: fadeZoomIn 0.9s ease-in-out forwards;
+        }
+        .page.active { display: block; }
+        @keyframes fadeZoomIn {
+            0% { opacity: 0; transform: scale(0.95) translateY(30px); filter: blur(3px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+        #page-transition-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: var(--bg-deep-space); z-index: 9999; opacity: 1;
+            pointer-events: none; transition: opacity 0.4s ease-in-out;
+        }
+
+        /* --- HOMEPAGE SPECIFIC STRUCTURE --- */
+        #home-page { padding: 0; }
+        .hero-container {
+            min-height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            padding: 120px 7% 60px;
+        }
+        .hero-container .logo-main {
+            font-family: 'Bruno Ace SC', sans-serif;
+            font-size: clamp(2rem, 8vw, 4rem);
+            font-weight: 400;
+            color: #fff;
+            text-shadow: 0 0 2px #fff, 
+                         0 0 12px rgba(0, 255, 255, 0.5), 
+                         0 0 25px rgba(0, 255, 255, 0.2);
+            letter-spacing: 4px;
+            margin-bottom: 1.5rem;
+            direction: ltr;
+        }
+        /* تعديل: إعادة تنسيق اللوجو الكبير */
+        .hero-container .M-Logo {
+            height: 200px; /* يمكن تعديل الحجم حسب الرغبة */
+            width: auto;
+            margin-bottom: 1rem; /* مسافة بين اللوجو والكلمة */
+        }
+        .hero-container .slogan {
+            font-family: 'Amiri', serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 700;
+            color: var(--text-dark);
+            text-shadow: 0 0 8px var(--secondary-glow);
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        /* --- SECTION HEADING --- */
+        .section-heading {
+            font-size: 3rem; font-weight: 900; text-align: center; margin-bottom: 3rem;
+            color: var(--text-light); text-shadow: 0 0 15px var(--secondary-glow);
+        }
+        .home-section { padding: 100px 7%; }
+        
+        /* ... باقي كود CSS يبقى كما هو ... */
+        .slideshow {
+            max-width: 1000px; margin: 0 auto; position: relative;
+            border-radius: 15px; overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+        .slides-wrapper { display: flex; transition: transform 0.6s ease-in-out; }
+        .slide {
+            flex: 0 0 100%; display: flex; align-items: center; padding: 2rem 4rem;
+            background: linear-gradient(45deg, rgba(0, 255, 255, 0.05), rgba(190, 0, 255, 0.05));
+        }
+        .slide-text { padding-left: 2rem; }
+        .slide-text h3 { font-size: 2.2rem; color: var(--primary-glow); margin-bottom: 1rem; }
+        .slide-text p { font-size: 1.1rem; color: var(--text-dark); line-height: 1.7; }
+        .slide-nav-btn {
+            position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.3);
+            color: var(--primary-glow); border: 1px solid var(--glass-border); border-radius: 50%;
+            width: 45px; height: 45px; font-size: 1.5rem; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; transition: background 0.3s, box-shadow 0.3s;
+        }
+        .slide-nav-btn:hover { background: var(--primary-glow); color: var(--bg-deep-space); box-shadow: 0 0 15px var(--primary-glow); }
+        #prev-btn { left: 15px; }
+        #next-btn { right: 15px; }
+        .dots-container {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px;
+        }
+        .dot {
+            width: 12px; height: 12px; border-radius: 50%; background: var(--glass-border);
+            cursor: pointer; transition: background 0.3s, transform 0.3s;
+        }
+        .dot.active { background: var(--primary-glow); transform: scale(1.2); }
+        .page-container { padding: 120px 7% 60px; }
+        .page-title {
+            font-size: 3.5rem; font-weight: 900; text-align: center; margin-bottom: 4rem;
+            color: var(--text-light); text-shadow: 0 0 15px var(--secondary-glow);
+        }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; }
+        .data-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 15px;
+            padding: 2rem; backdrop-filter: blur(5px);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            position: relative; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .data-card:before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
+            opacity: 0.1; transition: left 0.5s ease;
+        }
+        .data-card:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(0, 255, 255, 0.1); }
+        .data-card:hover:before { left: 100%; }
+        .data-card h3 { font-size: 1.8rem; font-weight: 700; color: var(--primary-glow); margin-bottom: 1rem; }
+        .data-card p { color: var(--text-dark); line-height: 1.8; margin-bottom: 1.5rem; flex-grow: 1; }
+        .btn {
+            display: inline-block; padding: 12px 28px; background: transparent;
+            border: 2px solid var(--primary-glow); border-radius: 50px; color: var(--primary-glow);
+            font-size: 1rem; font-weight: 700; text-decoration: none; transition: all 0.3s ease;
+            text-align: center;
+        }
+        .btn:hover { background: var(--primary-glow); color: var(--bg-deep-space); box-shadow: 0 0 20px var(--primary-glow); }
+        .card-buttons {
+            display: flex; flex-wrap: wrap; align-items: center;
+            gap: 10px; margin-top: auto; padding-top: 1rem;
+        }
+        .rating-button {
+            background-color: var(--rating-gold); color: #111; border: none; padding: 12px 20px;
+            border-radius: 50px; cursor: pointer; font-weight: 700; font-size: 1rem;
+            font-family: 'Tajawal', sans-serif; display: flex; align-items: center; gap: 8px;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .rating-button:hover { background-color: #e0a800; box-shadow: 0 0 15px var(--rating-gold); }
+        .form-container {
+            max-width: 600px; margin: 0 auto; background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 15px; padding: 3rem; backdrop-filter: blur(5px);
+        }
+        .form-group input {
+            width: 100%; padding: 15px; margin-bottom: 1.5rem; background: rgba(2, 0, 26, 0.8);
+            border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-light);
+            font-size: 1rem; transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .form-group input:focus { outline: none; border-color: var(--primary-glow); box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); }
+        #form-status { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; text-align: center; font-weight: 600; display: none; }
+        #form-status.success { background-color: rgba(0, 255, 255, 0.2); color: var(--primary-glow); }
+        #form-status.error { background-color: rgba(190, 0, 255, 0.2); color: var(--secondary-glow); }
+        .footer { text-align: center; padding: 2rem; margin-top: 4rem; border-top: 1px solid var(--glass-border); color: var(--text-dark); }
+    </style>
+</head>
+<body>
+
+    <div id="tsparticles"></div>
+    <div id="page-transition-overlay"></div>
+
+    <header class="header">
+        <nav class="navbar">
+            <a data-target="home-page" class="active">الرئيسية</a>
+            <a data-target="courses-page">الدورات</a>
+            <a data-target="library-page">المكتبة الرقمية</a>
+            <a data-target="news-page">الجديد</a>
+            <a data-target="register-page">التسجيل</a>
+        </nav>
+        <a href="#" class="logo" data-target="home-page"></a>
+        <img class="N-Logo" src="pl logo.png" />
+        <style> .N-Logo { width: 50px; height: auto; } </style>
+    </header>
+
+    <main>
+        <section id="home-page" class="page active">
+            <div class="hero-container">
+                <!-- تعديل: تم إرجاع اللوجو الكبير هنا -->
+                <img class="M-Logo" src="pl logo.png" alt="Planetarium Logo">
+                <h1 class="logo-main">PLANETARIUM</h1>
+                <p class="slogan">الكون يتكلم.. سنسمعك صوته</p>
+            </div>
+            <div class="home-section services-container">
+                <h2 class="section-heading">خدماتنا المميزة</h2>
+                <div class="grid-container">
+                    <div class="data-card"><h3>دورات تفاعلية</h3><p>انطلق في رحلة تعليمية فريدة مع دورات مصممة لتبسيط أعقد مفاهيم الفلك، مدعومة برسوم متحركة وتطبيقات عملية.</p></div>
+                    <div class="data-card"><h3>مكتبة رقمية غنية</h3><p>احصل على وصول حصري لمجموعة متزايدة من الملخصات العلميه، الأوراق البحثية المبسطة، والكتب الإلكترونية من إنتاجنا.</p></div>
+                    <div class="data-card"><h3>تدريبات للمسابقات الدوليه</h3><p>استعد بثقة للمنافسة في الأولمبيادات والمسابقات الفلكية الدولية مع برامج تدريبية متخصصة ومكثفة.</p></div>
+                    <div class="data-card"><h3>مجتمع فلكي</h3><p>تواصل مع عشاق الفلك الآخرين، شارك اكتشافاتك، واطرح أسئلتك في مجتمعنا الخاص المليء بالخبراء والهواة.</p></div>
+                    <div class="data-card"><h3>محتوى علمي مجاني</h3><p>استمتع بمقالات وفيديوهات وخرائط فلكية مجانية ومحدثة بانتظام لتظل على اطلاع بآخر مستجدات عالم الفلك.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ... باقي أقسام HTML تبقى كما هي ... -->
+        <section id="news-page" class="page">
+            <div class="page-container">
+                <h1 class="page-title">آخر الأخبار والإعلانات</h1>
+                <div class="slideshow">
+                    <div class="slides-wrapper">
+                        <div class="slide"><div class="slide-text"><h3>دورة جديدة: التصوير الفلكي</h3><p>ترقبوا إطلاق دورتنا الجديدة التي ستعلمك كيفية التقاط صور مذهلة للسماء الليلية باستخدام كاميرا احترافية أو حتى هاتفك الذكي.</p></div></div>
+                        <div class="slide"><div class="slide-text"><h3>ورشة عمل: رصد زخة شهب البرشاويات</h3><p>انضم إلينا في بث مباشر لرصد واحدة من أجمل زخات الشهب السنوية، مع شرح تفصيلي لكيفية الرصد وأفضل الأوقات.</p></div></div>
+                        <div class="slide"><div class="slide-text"><h3>تحديث المكتبة: أطلس القمر</h3><p>تم إضافة أطلس تفاعلي للقمر إلى مكتبتنا الرقمية، استكشف أبرز الفوهات والبحار القمرية الآن!</p></div></div>
+                    </div>
+                    <button id="prev-btn" class="slide-nav-btn">❮</button>
+                    <button id="next-btn" class="slide-nav-btn">❯</button>
+                    <div class="dots-container"></div>
+                </div>
+            </div>
+        </section>
+        <section id="courses-page" class="page">
+            <div class="page-container">
+                <h1 class="page-title">الدورات المتاحة</h1>
+                <div class="grid-container">
+                    <div class="data-card">
+                        <h3>دورة الضوء</h3>
+                        <p>  دورة لدراسة الضوء والذي يعد اهم اداه لفهم واكتشاف الكون </p>
+                        <div class="card-buttons">
+                            <a href="#" class="btn" data-target="register-page">سجل الآن</a>
+                            <button class="rating-button"><i class="fas fa-star"></i> تقييم الكورس</button>
+                        </div>
+                    </div>
+                    <div class="data-card">
+                        <h3>دورة تدريب IAAC 2025  </h3>
+                        <p>تدريب لادوار المسابقه الدوليه للفلك والفيزياء الفلكيه شرح وحل الافكار السابقه وافكار متوقعه</p>
+                        <div class="card-buttons">
+                            <a href="#" class="btn" data-target="register-page">سجل الآن</a>
+                            <button class="rating-button"><i class="fas fa-star"></i> تقييم الكورس</button>
+                        </div>
+                    </div>
+                     <div class="data-card">
+                        <h3>اساسيات الفيزياء الفلكيه</h3>
+                        <p> </p>
+                        <div class="card-buttons">
+                            <a href="#" class="btn" data-target="register-page">سجل الآن</a>
+                            <button class="rating-button"><i class="fas fa-star"></i> تقييم الكورس</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="library-page" class="page">
+            <div class="page-container">
+                <h1 class="page-title">المكتبة الرقمية</h1>
+                <div class="grid-container">
+                    <div class="data-card"><h3>خريطة النجوم الموسمية</h3><p>ملف PDF يحتوي على خرائط لأهم المجموعات النجمية الظاهرة في سماء الوطن العربي لكل فصل.</p><a href="#" class="btn" download>تحميل</a></div>
+                    <div class="data-card"><h3>ورقة عمل: رصد الكواكب</h3><p>دليل عملي للمبتدئين حول كيفية رصد كواكب المجموعة الشمسية بالعين المجردة أو بالتلسكوب.</p><a href="#" class="btn" download>تحميل</a></div>
+                    <div class="data-card"><h3>ملخص تاريخ علم الفلك العربي</h3><p>استكشف الإسهامات العظيمة للعلماء العرب والمسلمين في تطوير علم الفلك عبر العصور الذهبية.</p><a href="#" class="btn" download>تحميل</a></div>
+                </div>
+            </div>
+        </section>
+        <section id="register-page" class="page">
+            <div class="page-container">
+                <h1 class="page-title">انضم إلى رحلتنا الفلكية</h1>
+                <div class="form-container">
+                    <form id="registration-form" action="https://api.web3forms.com/submit" method="POST">
+                        <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE">
+                        <input type="hidden" name="subject" value="تسجيل جديد من منصة Planetarium">
+                        <div class="form-group"><input type="text" name="name" placeholder="الاسم الكامل" required></div>
+                        <div class="form-group"><input type="email" name="email" placeholder="البريد الإلكتروني" required></div>
+                        <button type="submit" class="btn" style="width: 100%;">إرسال التسجيل</button>
+                    </form>
+                    <div id="form-status"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>© 2025 Planetarium. كل الحقوق محفوظة.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.9.3/tsparticles.bundle.min.js"></script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        tsParticles.load("tsparticles", {
+            particles: {
+                number: { value: 100, density: { enable: true, value_area: 800 } },
+                color: { value: ["#ffffff", "#FFD700", "#ADD8E6"] },
+                shape: { type: "circle" },
+                opacity: { value: {min: 0.3, max: 0.8}, animation: { enable: true, speed: 1, minimumValue: 0.1, sync: false } },
+                size: { value: {min: 1, max: 3} },
+                links: { enable: true, distance: 150, color: "#ffffff", opacity: 0.1, width: 1 },
+                move: {
+                    enable: true, speed: 1, direction: "none",
+                    random: true, straight: false, outModes: "out"
+                },
+            },
+            interactivity: {
+                events: {
+                    onHover: { enable: true, mode: "grab", parallax: { enable: true, force: 60, smooth: 10 } },
+                    onClick: { enable: true, mode: "push" },
+                    resize: true,
+                },
+                modes: {
+                    grab: { distance: 200, links: { opacity: 0.3 } },
+                    push: { quantity: 4 },
+                },
+            },
+            detectRetina: true,
+        });
+
+        // ... باقي كود JS يبقى كما هو ...
+        const overlay = document.getElementById('page-transition-overlay');
+        const navLinks = document.querySelectorAll('.navbar a, .logo, .btn[data-target]');
+        navLinks.forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const targetId = link.getAttribute('data-target');
+                navigateTo(targetId);
+            });
+        });
+        function navigateTo(targetId) {
+            const activePage = document.querySelector('.page.active');
+            if (!targetId || (activePage && activePage.id === targetId)) return;
+            overlay.style.opacity = '1';
+            setTimeout(() => {
+                if (activePage) activePage.classList.remove('active');
+                document.getElementById(targetId).classList.add('active');
+                if (document.querySelector('.navbar a.active')) {
+                    document.querySelector('.navbar a.active').classList.remove('active');
+                }
+                const newActiveLink = document.querySelector(`.navbar a[data-target="${targetId}"]`);
+                if (newActiveLink) {
+                    newActiveLink.classList.add('active');
+                } else {
+                    document.querySelector('.navbar a[data-target="home-page"]').classList.remove('active');
+                }
+                window.scrollTo(0, 0);
+                overlay.style.opacity = '0';
+            }, 400);
+        }
+
+        const sloganEl = document.querySelector('.hero-container .slogan');
+        sloganEl.textContent = "الكون يتكلم.. هنسمعك صوته";
+
+        // تعديل: إضافة حركة دخول للوجو مع النص
+        gsap.timeline({ delay: 0.5 })
+            .from(".hero-container .M-Logo", { opacity: 0, scale: 0.8, duration: 1, ease: 'power2.out' })
+            .from(".hero-container .logo-main", { opacity: 0, y: -50, duration: 1, ease: 'power2.out' }, "-=0.7")
+            .from(sloganEl, { opacity: 0, y: 20, duration: 1, ease: "power2.out" }, "-=0.7");
+
+        const slidesWrapper = document.querySelector('.slides-wrapper');
+        const slides = document.querySelectorAll('.slide');
+        const dotsContainer = document.querySelector('.dots-container');
+        let currentSlide = 0, autoSlideInterval;
+        if(slides.length > 0) {
+            dotsContainer.innerHTML = '';
+            slides.forEach((_, i) => dotsContainer.innerHTML += `<div class="dot ${i === 0 ? 'active' : ''}" data-slide="${i}"></div>`);
+            const dots = document.querySelectorAll('.dot');
+            const updateSlide = (index) => {
+                slidesWrapper.style.transform = `translateX(-${index * 100}%)`;
+                dots.forEach(d => d.classList.remove('active'));
+                dots[index].classList.add('active');
+                currentSlide = index;
+            };
+            document.getElementById('next-btn').addEventListener('click', () => { updateSlide((currentSlide + 1) % slides.length); resetAutoSlide(); });
+            document.getElementById('prev-btn').addEventListener('click', () => { updateSlide((currentSlide - 1 + slides.length) % slides.length); resetAutoSlide(); });
+            dots.forEach(d => d.addEventListener('click', () => { updateSlide(parseInt(d.dataset.slide)); resetAutoSlide(); }));
+            const resetAutoSlide = () => { clearInterval(autoSlideInterval); autoSlideInterval = setInterval(() => updateSlide((currentSlide + 1) % slides.length), 5000); };
+            resetAutoSlide();
+        }
+
+        const form = document.getElementById('registration-form'), formStatus = document.getElementById('form-status');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (form.querySelector('input[name="access_key"]').value === 'YOUR_ACCESS_KEY_HERE') {
+                showStatus("خطأ: مفتاح الوصول غير موجود.", "error"); return;
+            }
+            const data = new FormData(form), object = {};
+            data.forEach((v, k) => object[k] = v);
+            showStatus("جاري إرسال البيانات...", "success");
+            fetch(form.action, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(object) })
+                .then(async r => { let j = await r.json(); return r.ok ? j : Promise.reject(j); })
+                .then(() => { showStatus("تم الاستلام بنجاح!", "success"); form.reset(); })
+                .catch(err => showStatus(err.message || "حدث خطأ.", "error"));
+        });
+        const showStatus = (msg, type) => { formStatus.textContent = msg; formStatus.className = type; formStatus.style.display = 'block'; setTimeout(() => formStatus.style.display = 'none', 6000); };
+
+        setTimeout(() => overlay.style.opacity = '0', 100);
+    });
+    </script>
+</body>
+</html>

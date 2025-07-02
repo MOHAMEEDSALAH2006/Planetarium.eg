@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planetarium</title>
+    
+    <!-- === الخطوط === -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Bruno+Ace+SC&family=Tajawal:wght@400;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- === الأيقونات === -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- ========================================================================= -->
+    <!-- ===                        ملف التنسيقات (CSS)                        === -->
+    <!-- ========================================================================= -->
+    <style>
+        /* --- 1. إعدادات وألوان عامة --- */
+        :root {
+            --bg-deep-space: #000011; --primary-glow: #00ffff; --secondary-glow: #be00ff;
+            --text-light: #e0e8ff; --text-dark: #a0a8c8; --glass-bg: rgba(0, 255, 255, 0.05);
+            --glass-border: rgba(0, 255, 255, 0.2); --glass-bg-darker: rgba(0, 50, 50, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { background-color: transparent; font-family: 'Tajawal', sans-serif; color: var(--text-light); overflow-x: hidden; min-height: 100vh; }
+        
+        /* --- 2. الخلفية المتحركة --- */
+        #tsparticles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-color: var(--bg-deep-space); }
+
+        /* --- 3. الهيدر والقائمة --- */
+        .header { position: fixed; top: 0; left: 0; width: 100%; padding: 1.5rem 7%; display: flex; justify-content: space-between; align-items: center; z-index: 1000; background: rgba(2, 0, 26, 0.5); backdrop-filter: blur(10px); border-bottom: 1px solid var(--glass-border); }
+        .navbar a { font-size: 1.1rem; color: var(--text-light); text-decoration: none; margin-left: 2rem; transition: color 0.3s, text-shadow 0.3s; cursor: pointer; }
+        .navbar a:hover, .navbar a.active { color: var(--primary-glow); text-shadow: 0 0 15px var(--primary-glow); }
+
+        /* --- 4. نظام التنقل بين الصفحات --- */
+        .page { display: none; min-height: 100vh; animation: fadeZoomIn 0.9s ease-in-out forwards; }
+        .page.active { display: block; }
+        @keyframes fadeZoomIn { 0% { opacity: 0; transform: scale(0.95) translateY(30px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+        #page-transition-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--bg-deep-space); z-index: 9999; opacity: 1; pointer-events: none; transition: opacity 0.4s ease-in-out; }
+
+        /* --- 5. تنسيقات عامة (عناوين، أزرار، ..) --- */
+        .page-container { padding: 120px 7% 60px; }
+        .page-title, .section-heading { font-size: clamp(2.5rem, 6vw, 3.5rem); font-weight: 900; text-align: center; margin-bottom: 4rem; color: var(--text-light); text-shadow: 0 0 15px var(--secondary-glow); }
+        .btn { display: inline-block; padding: 10px 24px; background: transparent; border: 2px solid var(--primary-glow); border-radius: 50px; color: var(--primary-glow); font-size: 0.9rem; font-weight: 700; text-decoration: none; transition: all 0.3s ease; text-align: center; }
+        .btn:hover { background: var(--primary-glow); color: var(--bg-deep-space); box-shadow: 0 0 20px var(--primary-glow); }
+        .btn.secondary { border-color: var(--secondary-glow); color: var(--secondary-glow); }
+        .btn.secondary:hover { background: var(--secondary-glow); color: var(--bg-deep-space); box-shadow: 0 0 20px var(--secondary-glow); }
+        
+        /* --- 6. تنسيقات الصفحة الرئيسية --- */
+        .hero-container { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 120px 7% 60px; }
+        .hero-container .logo-main { font-family: 'Bruno Ace SC', sans-serif; font-size: clamp(2rem, 8vw, 4rem); color: #fff; text-shadow: 0 0 2px #fff, 0 0 12px rgba(0, 255, 255, 0.5), 0 0 25px rgba(0, 255, 255, 0.2); margin-bottom: 1.5rem; direction: ltr; }
+        .hero-container .M-Logo { height: 200px; width: auto; margin-bottom: 1rem; }
+        .hero-container .slogan { font-family: 'Amiri', serif; font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--text-dark); text-shadow: 0 0 8px var(--secondary-glow); max-width: 600px; line-height: 1.6; }
+        .home-section { padding: 100px 7%; }
+        .data-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 15px; padding: 2rem; backdrop-filter: blur(5px); display: flex; flex-direction: column; transition: transform 0.4s ease, box-shadow 0.4s ease; }
+        .data-card:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(0, 255, 255, 0.1); }
+        .data-card h3 { font-size: 1.8rem; color: var(--primary-glow); margin-bottom: 1rem; }
+        .data-card p { color: var(--text-dark); line-height: 1.8; flex-grow: 1; }
+        
+        /* --- 7. تنسيقات كروت الدورات والمكتبة (3 أعمدة) --- */
+        .grid-container { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+        @media (min-width: 768px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .grid-container { grid-template-columns: repeat(3, 1fr); } }
+        
+        .course-categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; text-align: center; }
+        .category-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 15px; padding: 3rem 2rem; backdrop-filter: blur(5px); cursor: pointer; transition: transform 0.4s ease, box-shadow 0.4s ease; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .category-card:hover { transform: translateY(-15px) scale(1.03); box-shadow: 0 15px 40px rgba(0, 255, 255, 0.2); }
+        .course-grid-container { display: none; }
+        .course-grid-container.active-grid { display: block; animation: fadeZoomIn 0.7s; }
+
+        .course-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 15px; backdrop-filter: blur(5px); transition: transform 0.4s ease, box-shadow 0.4s ease; overflow: hidden; display: flex; flex-direction: column; }
+        .course-card:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(0, 255, 255, 0.1); }
+        .course-image-placeholder { aspect-ratio: 16 / 9; background-color: rgba(0,0,0,0.4); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: center; align-items: center; color: var(--text-dark); font-size: 0.9rem; }
+        .course-image-placeholder img { width: 100%; height: 100%; object-fit: cover; }
+        .course-content { padding: 1.5rem; display: flex; flex-direction: column; flex-grow: 1; }
+        .course-content h3 { font-size: 1.5rem; color: var(--primary-glow); margin-bottom: 1rem; }
+        .course-content p { color: var(--text-dark); line-height: 1.7; margin-bottom: 1.5rem; flex-grow: 1; }
+        .back-to-categories-btn { margin-bottom: 2rem; background: var(--secondary-glow); border-color: var(--secondary-glow); }
+        .card-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding-top: 1rem; }
+        .share-btn { background: none; border: none; color: var(--text-dark); font-size: 1.2rem; cursor: pointer; transition: color 0.3s, transform 0.3s; margin-right: auto; padding: 5px; }
+        .share-btn:hover { color: var(--primary-glow); transform: scale(1.1); }
+        
+        /* --- 8. تنسيقات النافذة المنبثقة (Modal) وخريطة التعلم --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 2000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.4s, visibility 0.4s; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--bg-deep-space); border: 1px solid var(--glass-border); border-radius: 15px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative; transform: scale(0.9); transition: transform 0.4s; }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        .modal-close-btn { position: absolute; top: 1rem; left: 1.5rem; background: none; border: none; color: var(--text-light); font-size: 2rem; cursor: pointer; }
+
+        .accordion-item { background: var(--glass-bg-darker); border: 1px solid var(--glass-border); border-radius: 10px; margin-bottom: 1rem; overflow: hidden; }
+        .accordion-header { padding: 1rem 1.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.3s; }
+        .accordion-header:hover { background-color: var(--glass-bg); }
+        .accordion-header .lesson-title { flex-grow: 1; }
+        .accordion-header .lesson-title h3 { font-size: 1.3rem; color: var(--text-light); }
+        .accordion-header .lesson-title span { font-size: 0.9rem; color: var(--primary-glow); font-family: 'Orbitron', sans-serif; }
+        .accordion-header .icon { font-size: 1.2rem; color: var(--primary-glow); transition: transform 0.4s ease-out; }
+        .accordion-content { height: 0; overflow: hidden; }
+        .accordion-content-inner { padding: 1rem 1.5rem 1.5rem; display: flex; align-items: flex-start; gap: 1.5rem; }
+        .accordion-content .lesson-details { flex-grow: 1; }
+        .accordion-content p { margin-bottom: 1.5rem; color: var(--text-dark); }
+        .accordion-item.is-open .accordion-header .icon { transform: rotate(180deg); }
+        .lesson-thumbnail { width: 120px; height: 67.5px; flex-shrink: 0; background-color: #000; border-radius: 5px; overflow: hidden; }
+        .lesson-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+        .lesson-materials { border-top: 1px solid var(--glass-border); margin-top: 1rem; padding-top: 1rem; }
+        .lesson-materials h4 { color: var(--text-light); margin-bottom: 1rem; }
+        .btn-download { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-dark); margin-bottom: 0.5rem; transition: color 0.3s; }
+        .btn-download:hover { color: var(--primary-glow); }
+        
+        /* --- 9. تنسيقات صفحة التسجيل (الفورم) --- */
+        .form-container { max-width: 600px; margin: 0 auto; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 15px; padding: 3rem; backdrop-filter: blur(5px); }
+        .form-group input { width: 100%; padding: 15px; margin-bottom: 1.5rem; background: rgba(2, 0, 26, 0.8); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-light); font-size: 1rem; }
+        #form-status { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; text-align: center; font-weight: 600; display: none; }
+        
+        /* --- 10. تنسيقات سلايدر الأخبار --- */
+        .slideshow { max-width: 1000px; margin: 0 auto; position: relative; border-radius: 15px; overflow: hidden; border: 1px solid var(--glass-border); }
+        .slides-wrapper { display: flex; transition: transform 0.6s ease-in-out; }
+        .slide { flex: 0 0 100%; display: flex; align-items: center; padding: 2rem 4rem; background: linear-gradient(45deg, rgba(0, 255, 255, 0.05), rgba(190, 0, 255, 0.05)); }
+        
+        /* --- 11. تنسيقات الفوتر --- */
+        .footer { text-align: center; padding: 2rem; margin-top: 4rem; border-top: 1px solid var(--glass-border); color: var(--text-dark); }
+    </style>
+</head>
+<body>
+
+    <!-- ========================================================================= -->
+    <!-- ===                     عناصر أساسية ثابتة في الصفحة                    === -->
+    <!-- ========================================================================= -->
+    
+    <div id="tsparticles"></div>
+    <div id="page-transition-overlay"></div>
+
+    <header class="header">
+        <nav class="navbar">
+            <a data-target="home-page" class="active">الرئيسية</a>
+            <a data-target="courses-page">الدورات</a>
+            <a data-target="library-page">المكتبة الرقمية</a>
+            <a data-target="news-page">الجديد</a>
+            <a data-target="register-page">التسجيل</a>
+        </nav>
+        <!-- غيّر رابط الشعار الصغير هنا -->
+        <img src="pl logo.png" style="width: 50px; height: auto;" />
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- ===                 المحتوى الرئيسي (يتغير حسب الصفحة)                  === -->
+    <!-- ========================================================================= -->
+    <main>
+
+        <!-- === 1. الصفحة الرئيسية (Home) === -->
+        <section id="home-page" class="page active">
+            <div class="hero-container">
+                <img src="pl logo.png" alt="Planetarium Logo" style="height: 200px; width: auto; margin-bottom: 1rem;">
+                <h1 class="logo-main">PLANETARIUM</h1>
+                <p class="slogan">الكون يتكلم.. سنسمعك صوته</p>
+            </div>
+            <div class="home-section">
+                <h2 class="section-heading">خدماتنا المميزة</h2>
+                <div class="grid-container">
+                    <div class="data-card"><h3>دورات تفاعلية</h3><p>انطلق في رحلة تعليمية فريدة مع دورات مصممة لتبسيط أعقد مفاهيم الفلك، مدعومة برسوم متحركة وتطبيقات عملية.</p></div>
+                    <div class="data-card"><h3>مكتبة رقمية غنية</h3><p>احصل على وصول حصري لمجموعة متزايدة من الملخصات العلميه، الأوراق البحثية المبسطة، والكتب الإلكترونية من إنتاجنا.</p></div>
+                    <div class="data-card"><h3>تدريبات للمسابقات الدوليه</h3><p>استعد بثقة للمنافسة في الأولمبيادات والمسابقات الفلكية الدولية مع برامج تدريبية متخصصة ومكثفة.</p></div>
+                    <div class="data-card"><h3>مجتمع فلكي</h3><p>تواصل مع عشاق الفلك الآخرين، شارك اكتشافاتك، واطرح أسئلتك في مجتمعنا الخاص المليء بالخبراء والهواة.</p></div>
+                    <div class="data-card"><h3>محتوى علمي مجاني</h3><p>استمتع بمقالات وفيديوهات وخرائط فلكية مجانية ومحدثة بانتظام لتظل على اطلاع بآخر مستجدات عالم الفلك.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- === 2. صفحة الدورات (Courses) === -->
+        <section id="courses-page" class="page">
+            <div class="page-container">
+                <h1 class="page-title">أقسام الدورات</h1>
+                <div class="course-categories">
+                    <div class="category-card" data-category="astrophysics"><i class="fas fa-satellite-dish"></i><h3>فيزياء فلكية</h3></div>
+                    <div class="category-card" data-category="cosmology"><i class="fas fa-atom"></i><h3>علم الكونيات</h3></div>
+                    <div class="category-card" data-category="space-tech"><i class="fas fa-rocket"></i><h3>تكنولوجيا الفضاء</h3></div>
+                </div>
+
+                <!-- قسم فيزياء فلكية -->
+                <div id="astrophysics-courses" class="course-grid-container">
+                    <button class="btn back-to-categories-btn"><i class="fas fa-arrow-right"></i> العودة للأقسام</button>
+                    <h2 class="section-heading">دورات الفيزياء الفلكية</h2>
+                    <div class="grid-container">
+                        <!-- لإضافة كورس جديد، انسخ هذا البلوك بالكامل وغير بياناته -->
+                        <div class="course-card" data-title="دورة الضوء" data-url="https://your-website.com/#course-1">
+                            <div class="course-image-placeholder"><img src="الضوء كفر.png" alt="دورة الضوء"></div>
+                            <div class="course-content"><h3>دورة الضوء</h3><p>وصف لدورة الضوء هنا...</p><div class="card-buttons"><button class="btn" data-modal-target="roadmap-course-1">خريطة التعلم</button><button class="share-btn" aria-label="مشاركة"><i class="fas fa-share-alt"></i></button></div></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- قسم علم الكونيات -->
+                <div id="cosmology-courses" class="course-grid-container">
+                    <button class="btn back-to-categories-btn"><i class="fas fa-arrow-right"></i> العودة للأقسام</button>
+                    <h2 class="section-heading">دورات علم الكونيات</h2>
+                    <div class="grid-container">
+                        <!-- انسخ كروت الكورسات هنا -->
+                    </div>
+                </div>
+                <!-- قسم تكنولوجيا الفضاء -->
+                 <div id="space-tech-courses" class="course-grid-container">
+                    <button class="btn back-to-categories-btn"><i class="fas fa-arrow-right"></i> العودة للأقسام</button>
+                    <h2 class="section-heading">دورات تكنولوجيا الفضاء</h2>
+                    <div class="grid-container">
+                        <!-- انسخ كروت الكورسات هنا -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- === 3. صفحة المكتبة الرقمية (Library) === -->
+        <section id="library-page" class="page">
+           <div class="page-container">
+                <h1 class="page-title">المكتبة الرقمية</h1>
+                <div class="grid-container">
+                    <div class="course-card">
+                        <div class="course-image-placeholder"><span>صورة الملف</span></div>
+                        <div class="course-content"><h3>ملخص تاريخ الفلك</h3><p>ملف PDF يحتوي على ملخص...</p><div class="card-buttons"><a href="مسار/ملف/التحميل.pdf" class="btn" download>تحميل</a></div></div>
+                    </div>
+                </div>
+           </div>
+        </section>
+
+        <!-- === 4. صفحة الجديد (News) === -->
+        <section id="news-page" class="page">
+            <div class="page-container"><h1 class="page-title">آخر الأخبار والإعلانات</h1>
+                <div class="slideshow"> <!-- ... محتوى السلايدر هنا ... --> </div>
+            </div>
+        </section>
+
+        <!-- === 5. صفحة التسجيل (Register) === -->
+        <section id="register-page" class="page">
+            <div class="page-container">
+                <h1 class="page-title">انضم إلى رحلتنا الفلكية</h1>
+                <div class="form-container">
+                    <form id="registration-form" action="https://api.web3forms.com/submit" method="POST">
+                        <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE">
+                        <input type="hidden" name="subject" value="تسجيل جديد">
+                        <div class="form-group"><input type="text" name="name" placeholder="الاسم الكامل" required></div>
+                        <div class="form-group"><input type="email" name="email" placeholder="البريد الإلكتروني" required></div>
+                        <button type="submit" class="btn" style="width: 100%;">إرسال التسجيل</button>
+                    </form>
+                    <div id="form-status"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- ========================================================================= -->
+    <!-- ===           النوافذ المنبثقة (Modals) لخرائط التعلم                  === -->
+    <!-- ========================================================================= -->
+
+    <!-- === نافذة خريطة تعلم الكورس الأول (دورة الضوء) === -->
+    <div class="modal-overlay" id="roadmap-course-1">
+        <div class="modal-content">
+            <button class="modal-close-btn">×</button>
+            <h2 class="page-title">خريطة تعلم: دورة الضوء</h2>
+            <div class="roadmap-accordion">
+                <!-- لإضافة درس جديد، انسخ هذا البلوك بالكامل وغير بياناته -->
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <div class="lesson-title"><span>الدرس 1</span><h3>المقدمه وتعريف الضوء</h3></div>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <div class="lesson-thumbnail"><img src="المقدمه وتعريف الضوء.png" alt="صورة الدرس"></div>
+                            <div class="lesson-details">
+                                <p> نفتح الباب لفهم الضوء كما لم تره من قبل: من تعريفه الفيزيائي، إلى دوره الأساسي في اكتشاف أسرار الفضاء.</p>
+                                <a href="https://youtu.be/9aBfqFPRlSc?si=4hRV2DuNWX-qg7me" target="_blank" class="btn">شاهد الآن</a>
+                                <div class="lesson-materials">
+                                    <h4>مواد الدرس</h4>
+                                    <a href="رابط-ملف-pdf" class="btn-download" download><i class="fas fa-file-pdf"></i> ملخص المحاضرة (PDF)</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- نهاية بلوك الدرس -->
+                 <div class="accordion-item">
+                    <div class="accordion-header">
+                        <div class="lesson-title"><span>الدرس 2</span><h3>النظريه الكهرومغناطيسيه</h3></div>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <div class="lesson-thumbnail"><img src="النظريه الكهرومغناطيسيه لماكسويل.jpg" alt="صورة الدرس"></div>
+                            <div class="lesson-details">
+                                <p>اكتشاف النظرية الكهرومغناطيسية لماكسويل، تلك التي وحدت الظواهر الكهربائية والمغناطيسية، وكشفت أن الضوء نفسه ليس إلا موجة كهرومغناطيسية.</p>
+                                <a href="https://youtu.be/O9VuwTU6SSM?si=g4wDWvsGEZzUwWQ2" target="_blank" class="btn">شاهد الآن</a>
+                                 <div class="lesson-materials">
+                                    <h4>مواد الدرس</h4>
+                                    <a href="رابط-ملف-pdf" class="btn-download" download><i class="fas fa-file-pdf"></i> ملخص المحاضرة (PDF)</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- === الفوتر (Footer) === -->
+    <footer class="footer"><p>© 2025 Planetarium. كل الحقوق محفوظة.</p></footer>
+
+    <!-- ========================================================================= -->
+    <!-- ===                   ملفات الجافاسكريبت والمكتبات                     === -->
+    <!-- ========================================================================= -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.9.3/tsparticles.bundle.min.js"></script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        gsap.registerPlugin(ScrollTrigger);
+
+        /* --- 1. إعداد الخلفية المتحركة --- */
+        tsParticles.load("tsparticles", { particles: { number: { value: 120 }, color: { value: ["#ffffff", "#FFD700", "#ADD8E6"] }, shape: { type: "circle" }, opacity: { value: {min: 0.3, max: 0.8}, animation: { enable: true, speed: 1 } }, size: { value: {min: 1, max: 3} }, links: { enable: true, distance: 150, color: "#ffffff", opacity: 0.1, width: 1 }, move: { enable: true, speed: 1, outModes: "out" }, }, interactivity: { events: { onHover: { enable: true, mode: "grab" }, onClick: { enable: true, mode: "push" }, }, modes: { grab: { distance: 200 }, push: { quantity: 4 }, }, }, });
+
+        /* --- 2. منطق التنقل بين الصفحات --- */
+        const overlay = document.getElementById('page-transition-overlay');
+        const navLinks = document.querySelectorAll('.navbar a, [data-target]');
+        navLinks.forEach(link => {
+            if(link.hasAttribute('data-target')) {
+                link.addEventListener('click', e => { e.preventDefault(); navigateTo(link.getAttribute('data-target')); });
+            }
+        });
+        function navigateTo(targetId) {
+            const activePage = document.querySelector('.page.active');
+            if (!targetId || (activePage && activePage.id === targetId)) return;
+            overlay.style.opacity = '1';
+            setTimeout(() => {
+                if (activePage) activePage.classList.remove('active');
+                const newPage = document.getElementById(targetId);
+                if(newPage) newPage.classList.add('active');
+                document.querySelectorAll('.navbar a.active').forEach(a => a.classList.remove('active'));
+                const newActiveLink = document.querySelector(`.navbar a[data-target="${targetId}"]`);
+                if (newActiveLink) newActiveLink.classList.add('active');
+                window.scrollTo(0, 0);
+                overlay.style.opacity = '0';
+            }, 400);
+        }
+
+        /* --- 3. أنيميشن ظهور الصفحة الرئيسية --- */
+        gsap.timeline({ delay: 0.5 }).from(".hero-container", { opacity: 0, duration: 1 });
+
+        /* --- 4. منطق صفحة الدورات (تبديل الأقسام) --- */
+        const categoryCards = document.querySelectorAll('.category-card');
+        const courseCategories = document.querySelector('.course-categories');
+        const courseGrids = document.querySelectorAll('.course-grid-container');
+        const backBtns = document.querySelectorAll('.back-to-categories-btn');
+        categoryCards.forEach(card => card.addEventListener('click', () => { const category = card.dataset.category; courseCategories.style.display = 'none'; document.getElementById(`${category}-courses`).classList.add('active-grid'); }));
+        backBtns.forEach(btn => btn.addEventListener('click', () => { courseGrids.forEach(grid => grid.classList.remove('active-grid')); courseCategories.style.display = 'grid'; }));
+        
+        /* --- 5. منطق النوافذ المنبثقة (Modals) --- */
+        const modalTriggers = document.querySelectorAll('[data-modal-target]');
+        const closeModals = document.querySelectorAll('.modal-close-btn');
+        const modalOverlays = document.querySelectorAll('.modal-overlay');
+        modalTriggers.forEach(trigger => trigger.addEventListener('click', () => { const modal = document.getElementById(trigger.dataset.modalTarget); if (modal) modal.classList.add('active'); }));
+        const closeModal = (modal) => { if(modal) modal.classList.remove('active'); }
+        closeModals.forEach(button => button.addEventListener('click', () => closeModal(button.closest('.modal-overlay'))));
+        modalOverlays.forEach(overlay => overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(overlay); }));
+
+        /* --- 6. منطق الأكورديون (Accordion) المطور --- */
+        const accordionHeaders = document.querySelectorAll('.accordion-header');
+        accordionHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const item = header.parentElement;
+                const content = header.nextElementSibling;
+                const isOpen = item.classList.contains('is-open');
+                
+                if (isOpen) {
+                    item.classList.remove('is-open');
+                    gsap.to(content, { height: 0, duration: 0.4, ease: "power2.inOut" });
+                } else {
+                    item.classList.add('is-open');
+                    gsap.to(content, { height: 'auto', duration: 0.5, ease: "power2.inOut" });
+                }
+            });
+        });
+
+        /* --- 7. منطق زر المشاركة (Share Button) --- */
+        const shareButtons = document.querySelectorAll('.share-btn');
+        shareButtons.forEach(button => { /* ... نفس كود المشاركة ... */ });
+
+        /* --- 8. منطق فورم التسجيل (الإرسال) --- */
+        const form = document.getElementById('registration-form');
+        if(form) { /* ... نفس كود الفورم ... */ }
+
+        /* --- 9. بدء تشغيل الموقع عند التحميل --- */
+        setTimeout(() => overlay.style.opacity = '0', 100);
+    });
+    </script>
+</body>
+</html>
